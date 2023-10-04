@@ -65,7 +65,7 @@ int main(void) {
  */
 void Read_n(int* n_p /* out */) {
    printf("What's the order of the vectors?\n");
-   scanf("%d", n_p);
+   scanf("%lld", n_p);
    if (*n_p <= 0) {
       fprintf(stderr, "Order should be positive\n");
       exit(-1);

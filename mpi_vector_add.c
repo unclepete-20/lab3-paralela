@@ -38,7 +38,10 @@ void Print_vector(double local_b[], int local_n, int n, char title[],
       int my_rank, MPI_Comm comm);
 void Parallel_vector_sum(double local_x[], double local_y[],
       double local_z[], int local_n);
-
+void Scalar_product(double local_x[], double local_y[], 
+      int local_n, double* dot_product);
+void Scalar_multiply(double local_x[], double local_y[], 
+      int local_n, double scalar);
 
 /*-------------------------------------------------------------------*/
 int main(void) {
@@ -54,7 +57,7 @@ int main(void) {
    MPI_Comm_rank(comm, &my_rank);
 
    //Read_n(&n, &local_n, my_rank, comm_sz, comm);
-   n = 10000000;
+   n = 50;
    local_n = n/comm_sz;
    tstart = MPI_Wtime();
    Allocate_vectors(&local_x, &local_y, &local_z, local_n, comm);
@@ -64,18 +67,30 @@ int main(void) {
    Read_vector(local_y, local_n, n, "y", my_rank, comm);
    //Print_vector(local_y, local_n, n, "y is", my_rank, comm);
 
+   // Calcualr producto punto de local_x y local_y
+   double dot_product = 0.0;
+   Scalar_product(local_x, local_y, local_n, &dot_product);
+   
+   // Calcular el producto escalar de local_x y local_y
+   double scalar = 8.0; 
+   Scalar_multiply(local_x, local_y, local_n, scalar);
+
    //Parallel_vector_sum(local_x, local_y, local_z, local_n);
    tend = MPI_Wtime();
+   printf("Process %d: Scalar product: %f\n", my_rank, dot_product);
 
    //Print_vector(local_z, local_n, n, "The sum is", my_rank, comm);
-   if(my_rank==0)
-    printf("\nTook %f s to run\n", (tend-tstart));
-
-   if(my_rank == 0) {
-      double sequential_time = 5.0; // Aquí pon el tiempo secuencial promedio que obtuviste
-      double speedup = sequential_time / ((tend-tstart));
-      printf("\nSpeedup: %f\n", speedup);
+   if(my_rank==0) {
+      printf("Dot product: %f\n", dot_product);
+      printf("Scalar product completed.\n");
+      printf("Took %f s to run\n", (tend - tstart));
    }
+      
+   // if(my_rank == 0) {
+   //    double sequential_time = 5.0; // Aquí pon el tiempo secuencial promedio que obtuviste
+   //    double speedup = sequential_time / ((tend-tstart));
+   //    printf("\nSpeedup: %f\n", speedup);
+   // }
 
    free(local_x);
    free(local_y);
@@ -304,3 +319,21 @@ void Parallel_vector_sum(
    for (local_i = 0; local_i < local_n; local_i++)
       local_z[local_i] = local_x[local_i] + local_y[local_i];
 }  /* Parallel_vector_sum */
+
+// Calcular el producto putno de dos vectores
+void Scalar_product(double local_x[], double local_y[], int local_n, double* dot_product) {
+    double local_dot_product = 0.0;
+    for (int i = 0; i < local_n; i++) {
+        local_dot_product += local_x[i] * local_y[i];
+    }
+
+    MPI_Allreduce(&local_dot_product, dot_product, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+}
+
+// Multiplicar los dos vectores por el valor escalar
+void Scalar_multiply(double local_x[], double local_y[], int local_n, double scalar) {
+    for (int i = 0; i < local_n; i++) {
+        local_x[i] *= scalar;
+        local_y[i] *= scalar;
+    }
+}
